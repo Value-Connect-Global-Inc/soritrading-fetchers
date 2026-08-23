@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "private": false,
   "license": "MIT",
-  "description": "무료 공개 데이터를 내 Postgres 로 — 소리트레이딩 ctx.data() 용 가벼운 수집기 모음",
+  "description": "Pull free public data into your own Postgres for SoriTrading strategies. One folder per fetcher, cron included.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/valueconnectinc/soritrading-fetchers.git"
+  },
+  "homepage": "https://github.com/valueconnectinc/soritrading-fetchers#readme",
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {

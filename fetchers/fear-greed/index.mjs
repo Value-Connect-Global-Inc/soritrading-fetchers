@@ -1,21 +1,21 @@
-// 공포탐욕 지수 (Crypto Fear & Greed Index) — 0(극단적 공포) ~ 100(극단적 탐욕), 일 1회.
-//  2018-02 부터 전 기간을 한 번에 준다(limit=0). 가격만으로는 안 보이는 심리 축이라
-//  첫 연동 테스트로 가장 좋다.
+// Crypto Fear & Greed Index — 0 (extreme fear) to 100 (extreme greed), once per day.
+//  `limit=0` returns the full history (since Feb 2018) in one response. It is a sentiment
+//  axis that price alone cannot show, which makes it the best first integration test.
 
 export const meta = {
   key: 'fear-greed',
   table: 'fear_greed',
-  title: '공포탐욕 지수',
+  title: 'Crypto Fear & Greed Index',
   source: 'alternative.me',
   url: 'https://api.alternative.me/fng/?limit=0',
-  //  원본은 UTC 자정 갱신 — 조금 지나서 받는다(정각에 몰리면 남의 서버도 우리도 손해).
+  //  The source updates at UTC midnight — fetch a little after, not on the dot.
   cron: '20 0 * * *',
-  license: '무료 공개 API. 출처 표기 요청(alternative.me).',
+  license: 'Free public API; attribution requested (alternative.me).',
 }
 
 export async function fetchRows(fetchImpl = fetch) {
   const r = await fetchImpl(meta.url)
   const j = await r.json()
-  //  timestamp 는 문자열 초 단위 epoch — Number 로 바꿔 계약(초)을 맞춘다.
+  //  `timestamp` is epoch seconds as a string — cast it so the contract (seconds) holds.
   return (j.data || []).map((d) => [Number(d.timestamp), Number(d.value)])
 }
