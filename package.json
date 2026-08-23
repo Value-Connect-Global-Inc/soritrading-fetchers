@@ -1,0 +1,18 @@
+{
+  "name": "soritrading-fetchers",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "description": "무료 공개 데이터를 내 Postgres 로 — 소리트레이딩 ctx.data() 용 가벼운 수집기 모음",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "list": "node run.mjs list",
+    "all": "node run.mjs all",
+    "install-cron": "node run.mjs --install-cron"
+  },
+  "dependencies": {
+    "pg": "^8"
+  }
+}
