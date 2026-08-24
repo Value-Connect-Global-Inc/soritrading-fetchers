@@ -7,7 +7,7 @@
 //  ★ Liquid staking and double-counted TVL are excluded by this endpoint (DefiLlama's v2
 //    definition). A different endpoint gives a different number for the same day.
 
-import { parseLlamaSeries } from '../../lib/sources.mjs'
+import { parseLlamaSeries, fetchJson } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'defi-tvl',
@@ -20,5 +20,5 @@ export const meta = {
 }
 
 export async function fetchRows(fetchImpl = fetch) {
-  return parseLlamaSeries(await (await fetchImpl(meta.url)).json(), 'tvl')
+  return parseLlamaSeries(await fetchJson(fetchImpl, meta.url), 'tvl')
 }

@@ -6,7 +6,7 @@
 //  ★ It is denominated in USD, so a large part of its movement is just the BTC price.
 //    Dividing by price (or by hash rate) is usually what you actually mean.
 
-import { parseChartValues, chartUrl } from '../../lib/sources.mjs'
+import { parseChartValues, chartUrl, fetchJson } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'btc-miner-revenue',
@@ -19,5 +19,5 @@ export const meta = {
 }
 
 export async function fetchRows(fetchImpl = fetch) {
-  return parseChartValues(await (await fetchImpl(meta.url)).json())
+  return parseChartValues(await fetchJson(fetchImpl, meta.url))
 }

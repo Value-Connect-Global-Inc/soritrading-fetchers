@@ -5,7 +5,7 @@
 //     someone else's server turns their bad day into our red CI.)
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { loadAll, listKeys } from '../lib/registry.mjs'
+import { loadAll, listKeys, loadFetcher } from '../lib/registry.mjs'
 import { assertTable } from '../lib/db.mjs'
 import { mergeCrontab, cronLines, BEGIN, END } from '../lib/cron.mjs'
 
@@ -98,4 +98,39 @@ test('table identifiers are whitelisted even though a fetcher supplied them', ()
 
 test('folder names stay [a-z0-9-] — the runner uses them as a path', async () => {
   for (const k of await listKeys()) assert.match(k, /^[a-z0-9-]{1,40}$/, k)
+})
+
+// ── Failure messages (real failure 2026-08-24) ────────────────────────────────
+//
+//  ★ `stablecoin-mcap` failed with "Unexpected end of JSON input". That sentence names the
+//    symptom and hides every fact needed to fix it: which URL, what status, what came back.
+//    The cause was an EMPTY 200 from the wrong host — the fetcher had the fact and threw it
+//    away. These tests lock the facts into the message.
+import { fetchJson, fetchText } from '../lib/sources.mjs'
+
+const res = (body, status = 200) => async () => ({ status, text: async () => body })
+
+test('an empty body says "empty", not "Unexpected end of JSON input"', async () => {
+  await assert.rejects(() => fetchJson(res(''), 'https://x.test/a'),
+    (e) => { assert.match(e.message, /empty body from https:\/\/x\.test\/a/); return true })
+  await assert.rejects(() => fetchText(res('   '), 'https://x.test/b'), /empty body/)
+})
+
+test('an HTML error page names the URL and shows the first bytes', async () => {
+  await assert.rejects(() => fetchJson(res('<!DOCTYPE html><title>404</title>'), 'https://x.test/c'),
+    (e) => {
+      assert.match(e.message, /not JSON from https:\/\/x\.test\/c/)
+      assert.match(e.message, /DOCTYPE/, 'the body is hidden — that is the whole failure being repeated')
+      return true
+    })
+})
+
+test('a non-2xx status fails before parsing — a 500 page is not "no data"', async () => {
+  await assert.rejects(() => fetchJson(res('{}', 503), 'https://x.test/d'), /HTTP 503 from https:\/\/x\.test\/d/)
+})
+
+test('★ stablecoin-mcap points at the stablecoins host — api.llama.fi answers it EMPTY', async () => {
+  const { meta } = await loadFetcher('stablecoin-mcap')
+  assert.match(meta.url, /^https:\/\/stablecoins\.llama\.fi\//,
+    'measured 2026-08-24: the documented api.llama.fi base returns an empty 200 for this path')
 })

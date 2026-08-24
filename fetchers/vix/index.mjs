@@ -7,7 +7,7 @@
 //  ★ Equities close on US holidays. The series has HOLES, not zeros (see parseFredCsv).
 //    Read it as-of in a strategy; do not assume one row per calendar day.
 
-import { parseFredCsv, fredUrl } from '../../lib/sources.mjs'
+import { parseFredCsv, fredUrl, fetchText } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'vix',
@@ -21,5 +21,5 @@ export const meta = {
 }
 
 export async function fetchRows(fetchImpl = fetch) {
-  return parseFredCsv(await (await fetchImpl(meta.url)).text())
+  return parseFredCsv(await fetchText(fetchImpl, meta.url))
 }

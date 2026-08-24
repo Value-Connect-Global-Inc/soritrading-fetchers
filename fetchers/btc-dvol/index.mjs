@@ -12,6 +12,8 @@
 //    The loop is capped: a source that keeps handing back continuations must not turn a
 //    daily cron into an infinite request loop against someone else's server.
 
+import { fetchJson } from '../../lib/sources.mjs'
+
 const API = 'https://www.deribit.com/api/v2/public/get_volatility_index_data'
 const START_MS = Date.parse('2021-01-01T00:00:00Z')   // before BTC DVOL history begins
 const MAX_PAGES = 40
@@ -45,7 +47,7 @@ export async function fetchRows(fetchImpl = fetch, now = Date.now()) {
   let end = now
   for (let page = 0; page < MAX_PAGES; page++) {
     const url = `${API}?currency=BTC&resolution=1D&start_timestamp=${START_MS}&end_timestamp=${end}`
-    const { rows, continuation } = parsePage(await (await fetchImpl(url)).json())
+    const { rows, continuation } = parsePage(await fetchJson(fetchImpl, url))
     for (const [t, v] of rows) seen.set(t, v)
     //  Stop when the source says there is no more, or when it stops moving backwards
     //  (a continuation that does not advance would spin forever).

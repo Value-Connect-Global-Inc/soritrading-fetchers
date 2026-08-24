@@ -6,7 +6,7 @@
 //  ★ The value can be NEGATIVE. If a strategy assumes ctx.data() is positive, this series
 //    is where that assumption breaks.
 
-import { parseFredCsv, fredUrl } from '../../lib/sources.mjs'
+import { parseFredCsv, fredUrl, fetchText } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'yield-curve',
@@ -19,5 +19,5 @@ export const meta = {
 }
 
 export async function fetchRows(fetchImpl = fetch) {
-  return parseFredCsv(await (await fetchImpl(meta.url)).text())
+  return parseFredCsv(await fetchText(fetchImpl, meta.url))
 }

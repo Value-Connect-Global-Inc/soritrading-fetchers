@@ -4,7 +4,7 @@
 //    through two paths leaves a result unable to say which one it used, so treat this fetcher
 //    as practice for the integration; prefer ctx.macro in real strategies.
 
-import { parseFredCsv, fredUrl } from '../../lib/sources.mjs'
+import { parseFredCsv, fredUrl, fetchText } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'fed-funds',
@@ -22,5 +22,5 @@ export async function fetchRows(fetchImpl = fetch) {
   //    are pinned to UTC midnight, and '.' (not published) rows are dropped rather than
   //    stored as NaN. Keeping a private copy here is how one of them ends up fixed and the
   //    other not.
-  return parseFredCsv(await (await fetchImpl(meta.url)).text())
+  return parseFredCsv(await fetchText(fetchImpl, meta.url))
 }

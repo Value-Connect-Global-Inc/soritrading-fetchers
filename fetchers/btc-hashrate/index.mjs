@@ -2,7 +2,7 @@
 //  ★ The values are large and slow-moving: a ratio to a moving average works better than a
 //    threshold on the raw level. Compute that in the strategy after reading ctx.data().
 
-import { parseChartValues, chartUrl } from '../../lib/sources.mjs'
+import { parseChartValues, chartUrl, fetchJson } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'btc-hashrate',
@@ -16,5 +16,5 @@ export const meta = {
 
 export async function fetchRows(fetchImpl = fetch) {
   //  values: [{ x: epoch seconds, y: value }] — parser shared with the other chart series.
-  return parseChartValues(await (await fetchImpl(meta.url)).json())
+  return parseChartValues(await fetchJson(fetchImpl, meta.url))
 }

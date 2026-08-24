@@ -6,7 +6,7 @@
 //  ★ This is the Fed's broad index (Jan 2006 = 100), NOT the ICE "DXY" futures index.
 //    They correlate but are not the same series — do not label a chart "DXY" from this.
 
-import { parseFredCsv, fredUrl } from '../../lib/sources.mjs'
+import { parseFredCsv, fredUrl, fetchText } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'dollar-index',
@@ -19,5 +19,5 @@ export const meta = {
 }
 
 export async function fetchRows(fetchImpl = fetch) {
-  return parseFredCsv(await (await fetchImpl(meta.url)).text())
+  return parseFredCsv(await fetchText(fetchImpl, meta.url))
 }

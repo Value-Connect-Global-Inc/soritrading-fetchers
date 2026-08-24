@@ -2,7 +2,7 @@
 //  If hash rate is "miners", this is "users". The two diverge often enough to be worth
 //  keeping apart: one table is one series, never several metrics mixed together.
 
-import { parseChartValues, chartUrl } from '../../lib/sources.mjs'
+import { parseChartValues, chartUrl, fetchJson } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'btc-active-addresses',
@@ -16,5 +16,5 @@ export const meta = {
 
 export async function fetchRows(fetchImpl = fetch) {
   //  values: [{ x: epoch seconds, y: value }] — parser shared with the other chart series.
-  return parseChartValues(await (await fetchImpl(meta.url)).json())
+  return parseChartValues(await fetchJson(fetchImpl, meta.url))
 }
