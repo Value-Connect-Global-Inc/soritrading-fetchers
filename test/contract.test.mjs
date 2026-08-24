@@ -56,10 +56,10 @@ test('parsed rows are [epoch SECONDS, number] — the unit is never left to be g
     'yield-curve': [fake('DATE,T10Y2Y\n2023-11-15,-0.45\n', true), [[1700006400, -0.45]]],
     'dollar-index': [fake('DATE,DTWEXBGS\n2023-11-15,119.85\n', true), [[1700006400, 119.85]]],
     //  ★ DefiLlama sends `date` as a STRING of epoch seconds, and totalCirculating as an
-    //    object of pegged buckets — both are normalised here, with the buckets SUMMED
-    //    (taking the first key would quietly drop every non-USD stablecoin).
+    //    object of pegged buckets. ★★ The buckets are NOT summed: peggedEUR is denominated in
+    //    euros, so adding it to dollars produces a number with no unit. USD peg only.
     'stablecoin-mcap': [fake([{ date: '1700000000', totalCirculating: { peggedUSD: 120e9, peggedEUR: 1e9 } }]),
-      [[1700000000, 121e9]]],
+      [[1700000000, 120e9]]],
     'defi-tvl': [fake([{ date: 1700000000, tvl: 45e9 }]), [[1700000000, 45e9]]],
     //  ★ DVOL candles are [tsMs, o, h, l, c] — we keep the CLOSE and convert ms → seconds.
     //    `continuation: null` ends the walk; without that the loop would page forever.
@@ -127,6 +127,14 @@ test('an HTML error page names the URL and shows the first bytes', async () => {
 
 test('a non-2xx status fails before parsing — a 500 page is not "no data"', async () => {
   await assert.rejects(() => fetchJson(res('{}', 503), 'https://x.test/d'), /HTTP 503 from https:\/\/x\.test\/d/)
+})
+
+test('★ blockchain.com charts ask for sampled=false — the default silently returns ~1.5k points', async () => {
+  //  실측 2026-08-24: 17년치가 1,608행(약 4일 간격)으로 왔고 응답 어디에도 그 사실이 없었다.
+  for (const k of ['btc-hashrate', 'btc-active-addresses', 'btc-miner-revenue']) {
+    const { meta } = await loadFetcher(k)
+    assert.match(meta.url, /sampled=false/, k + ': the source will downsample and not say so')
+  }
 })
 
 test('★ stablecoin-mcap points at the stablecoins host — api.llama.fi answers it EMPTY', async () => {

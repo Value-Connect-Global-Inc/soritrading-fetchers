@@ -50,7 +50,7 @@ the live list — this table is a description, the directory is the truth.
 | `btc-miner-revenue` | `btc_miner_revenue` | miner revenue USD/day | miner economics, the supply side |
 | `btc-active-addresses` | `btc_active_addresses` | daily active addresses | chain usage |
 
-Two habits that save a bad backtest:
+Three habits that save a bad backtest:
 
 - **Holes are real.** Market series (VIX, yield curve, dollar index) skip US holidays, and
   DVOL simply does not exist before 2021-03. A missing row means *not published*, so the
@@ -58,6 +58,11 @@ Two habits that save a bad backtest:
 - **Some series are price in disguise.** DeFi TVL and miner revenue are denominated in USD,
   so they rise when the asset rises. Compare against plain buy-and-hold before concluding
   that the data added anything.
+- **★ Count the rows against the calendar.** Measured 2026-08-24: the blockchain.com charts
+  silently returned 17 years as 1,608 points (~every 4th day) because `sampled` defaults to
+  true. Values, start date and end date all looked right. `node run.mjs --check` prints rows
+  and range side by side for exactly this reason — a series can be wrong while every number
+  in it is correct.
 
 ## After loading — use it in a strategy
 
