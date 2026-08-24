@@ -13,7 +13,7 @@ const CRON_RE = /^(\S+\s+){4}\S+$/   // five fields
 
 test('every fetcher satisfies the meta contract (the directory is the list)', async () => {
   const all = await loadAll()
-  assert.ok(all.length >= 4, 'no fetchers found — fetchers/ was not read')
+  assert.ok(all.length >= 11, 'fetchers are missing — fetchers/ was not read')
   for (const { key, meta } of all) {
     assert.equal(meta.key, key, `${key}: meta.key mismatch`)
     assertTable(meta.table)                                     // identifier whitelist
@@ -46,6 +46,25 @@ test('parsed rows are [epoch SECONDS, number] — the unit is never left to be g
     //    the host). 2023-11-15T00:00:00Z = 1700006400 — written out, not derived from the code
     //    under test, so a change in behaviour fails this line.
     'fed-funds': [fake('DATE,DFF\n2023-11-15,5.33\n', true), [[1700006400, 5.33]]],
+    'btc-miner-revenue': [fake({ values: [{ x: 1700000000, y: 4.2e7 }] }), [[1700000000, 4.2e7]]],
+    //  ★ FRED writes '.' on days a market was closed. The row is DROPPED, not stored as NaN
+    //    or 0 — "no observation" and "the index printed zero" are different facts, and a
+    //    strategy that cannot tell them apart will trade on the wrong one.
+    vix: [fake('DATE,VIXCLS\n2023-11-15,14.16\n2023-11-23,.\n', true), [[1700006400, 14.16]]],
+    //  ★ The spread goes NEGATIVE when the curve inverts — a parser that filtered
+    //    "invalid" values by sign would erase exactly the regime this series exists for.
+    'yield-curve': [fake('DATE,T10Y2Y\n2023-11-15,-0.45\n', true), [[1700006400, -0.45]]],
+    'dollar-index': [fake('DATE,DTWEXBGS\n2023-11-15,119.85\n', true), [[1700006400, 119.85]]],
+    //  ★ DefiLlama sends `date` as a STRING of epoch seconds, and totalCirculating as an
+    //    object of pegged buckets — both are normalised here, with the buckets SUMMED
+    //    (taking the first key would quietly drop every non-USD stablecoin).
+    'stablecoin-mcap': [fake([{ date: '1700000000', totalCirculating: { peggedUSD: 120e9, peggedEUR: 1e9 } }]),
+      [[1700000000, 121e9]]],
+    'defi-tvl': [fake([{ date: 1700000000, tvl: 45e9 }]), [[1700000000, 45e9]]],
+    //  ★ DVOL candles are [tsMs, o, h, l, c] — we keep the CLOSE and convert ms → seconds.
+    //    `continuation: null` ends the walk; without that the loop would page forever.
+    'btc-dvol': [fake({ result: { data: [[1700000000000, 50, 56, 49, 55.5]], continuation: null } }),
+      [[1700000000, 55.5]]],
   }
   const all = await loadAll()
   for (const { key, fetchRows } of all) {

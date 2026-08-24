@@ -26,6 +26,34 @@ node run.mjs --install-cron      # install each fetcher's own schedule into cron
 ★ Load with a **write account** (usually `postgres`), and give SoriTrading a **read-only
 account**. If a read-only account rejects the INSERT, that is working as intended.
 
+## What is included
+
+Everything below is **free and needs no API key** (verified Aug 2026). `node run.mjs list` is
+the live list — this table is a description, the directory is the truth.
+
+| fetcher | table | what it is | why it is a different axis than price |
+|---|---|---|---|
+| `fear-greed` | `fear_greed` | Crypto Fear & Greed, 0–100 (2018→) | crowd sentiment, not price |
+| `vix` | `macro_vix` | CBOE VIX daily close (1990→) | equity market's expected volatility |
+| `btc-dvol` | `btc_dvol` | Deribit DVOL, BTC implied vol % (2021-03→) | crypto's own vol — disagrees with VIX on crypto-only events |
+| `yield-curve` | `macro_yield_curve` | US 10y−2y spread, **can be negative** | recession / liquidity regime |
+| `fed-funds` | `macro_fed_funds` | US policy rate | the price of money |
+| `dollar-index` | `macro_dollar_index` | Fed broad USD index (not ICE "DXY") | global liquidity tightness |
+| `stablecoin-mcap` | `stablecoin_mcap` | total stablecoin market cap | dry powder already inside crypto |
+| `defi-tvl` | `defi_tvl` | DeFi TVL, all chains | on-chain risk appetite (co-moves with price — check that first) |
+| `btc-hashrate` | `btc_hashrate` | BTC hash rate | chain security / miner capacity |
+| `btc-miner-revenue` | `btc_miner_revenue` | miner revenue USD/day | miner economics, the supply side |
+| `btc-active-addresses` | `btc_active_addresses` | daily active addresses | chain usage |
+
+Two habits that save a bad backtest:
+
+- **Holes are real.** Market series (VIX, yield curve, dollar index) skip US holidays, and
+  DVOL simply does not exist before 2021-03. A missing row means *not published*, so the
+  fetchers drop it instead of writing `0` or `NaN` — read these as-of, not one-per-day.
+- **Some series are price in disguise.** DeFi TVL and miner revenue are denominated in USD,
+  so they rise when the asset rises. Compare against plain buy-and-hold before concluding
+  that the data added anything.
+
 ## After loading — use it in a strategy
 
 The runner prints the declaration values when it finishes. Just tell the AI:
