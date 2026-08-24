@@ -21,7 +21,12 @@ node run.mjs list                # what is available
 node run.mjs fear-greed          # fetch once
 node run.mjs all                 # fetch everything once
 node run.mjs --install-cron      # install each fetcher's own schedule into crontab
+node run.mjs --check             # what is in the DATABASE now (no fetching)
 ```
+
+★ `--check` is the one that proves the load: it reads your tables and prints rows, covered
+range, newest value and how old it is. "The fetch printed OK" and "the table has data" are
+different claims — a source that changes shape can satisfy the first and not the second.
 
 ★ Load with a **write account** (usually `postgres`), and give SoriTrading a **read-only
 account**. If a read-only account rejects the INSERT, that is working as intended.

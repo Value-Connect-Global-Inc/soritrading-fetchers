@@ -7,6 +7,7 @@
 //   node run.mjs all                  fetch everything
 //   node run.mjs --install-cron       install each fetcher's own schedule (idempotent)
 //   node run.mjs --show-cron          print the lines without installing
+//   node run.mjs --check              what is in the database right now (no fetching)
 //
 //  DATABASE_URL comes from .env or the environment. ★ Use a **write account** — a read-only
 //  account is supposed to reject the INSERT.
@@ -16,7 +17,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { listKeys, loadFetcher, loadAll } from './lib/registry.mjs'
-import { upsertRows } from './lib/db.mjs'
+import { upsertRows, tableStats } from './lib/db.mjs'
 import { mergeCrontab, cronLines } from './lib/cron.mjs'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -82,6 +83,28 @@ if (!url) {
   console.error('DATABASE_URL is not set — create .env (see .env.example) or pass it in the environment.')
   console.error('★ Use a write account. A read-only account (readonly_bot) is supposed to reject the INSERT.')
   process.exit(1)
+}
+
+//  ★ --check reads the DATABASE, not the sources. After a collection run this is the only
+//    thing that proves what landed: row counts, the covered range, and the newest value.
+//    A fetch that "succeeded" and a table that has data are different claims.
+if (arg === '--check') {
+  const items = await loadAll()
+  let bad = 0
+  for (const { key, meta } of items) {
+    const st = await tableStats(url, meta.table)
+    if (st.state === 'ok') {
+      const age = Math.floor((Date.now() / 1000 - st.last) / 86400)
+      //  ★ Staleness is reported, not judged: a weekly series is 6 days old on purpose,
+      //    and only the person who knows the source can say whether that is wrong.
+      console.log(`  ${key.padEnd(22)} ${String(st.rows).padStart(7)} rows  ${day(st.first)} → ${day(st.last)}`
+        + `  last=${st.lastValue}  (${age}d old)`)
+    } else {
+      bad++
+      console.log(`  ${key.padEnd(22)} ${st.state.toUpperCase()} — ${st.note}`)
+    }
+  }
+  process.exit(bad ? 1 : 0)
 }
 
 const keys = arg === 'all' ? await listKeys() : [arg]
