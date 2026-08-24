@@ -103,15 +103,6 @@ Three rules:
 `fetchRows` takes an injectable `fetchImpl` so the contract test can verify parsing without
 touching the network. Run `npm test` before opening a pull request.
 
-## Included fetchers
-
-| Folder | Table | Source | Schedule |
-|---|---|---|---|
-| `fear-greed` | `fear_greed` | alternative.me | daily |
-| `btc-hashrate` | `btc_hashrate` | blockchain.com | daily |
-| `btc-active-addresses` | `btc_active_addresses` | blockchain.com | daily |
-| `fed-funds` | `macro_fed_funds` | FRED (DFF) | daily |
-
 ★ `fed-funds` overlaps with SoriTrading's built-in `ctx.macro`. Feeding the same value through
 two paths makes a result ambiguous about which one it used, so treat that one as practice for
 the integration rather than something to build on.
