@@ -142,3 +142,44 @@ test('★ stablecoin-mcap points at the stablecoins host — api.llama.fi answer
   assert.match(meta.url, /^https:\/\/stablecoins\.llama\.fi\//,
     'measured 2026-08-24: the documented api.llama.fi base returns an empty 200 for this path')
 })
+
+// ── 수집 시각 (2026-09-07) ───────────────────────────────────────────────────
+//
+//  실사고: `ctx.data` 비콘이 "값이 4.7일 됐다"고 말했는데, 그 뒤엔 셋이 섞여 있었다 —
+//  ① 소스가 안 줬다(정상) ② cron 이 죽었다 ③ 돌았는데 실패했다.
+//  가르려면 cron 로그와 max(ts) 를 **손으로** 대조해야 했다. 유저는 그걸 못 하고,
+//  이 값은 거래에 쓰인다(§0.5 "0 은 세 가지 뜻이다").
+import { createSql, alterSql, upsertSql } from '../lib/db.mjs'
+
+test('★★★ 충돌 때 ingested_at 을 건드리지 않는다 — 옛 행이 "오늘 처음 봤다"고 말하면 안 된다', () => {
+  const sql = upsertSql('t', '($1,$2,now(),now())')
+  //  ★ 손잡이: 이 문장이 실제로 upsert 인지 먼저 본다(빈 문자열이면 아래가 다 통과한다)
+  assert.match(sql, /ON CONFLICT \(ts\) DO UPDATE/)
+
+  const set = sql.split('DO UPDATE SET')[1]
+  assert.match(set, /checked_at = EXCLUDED\.checked_at/, 'checked_at 은 매번 갱신해야 한다')
+  assert.equal(/ingested_at/.test(set), false,
+    '★★★ 충돌 절에 ingested_at 이 있다 — 과거 행의 최초 관측 시각을 오늘로 덮어쓴다: ' + set)
+})
+
+test('★★ 두 시각은 **다른 질문**이다 — 한 컬럼으로 접지 않는다 (§0.5 ⑤)', () => {
+  const c = createSql('t')
+  assert.match(c, /ingested_at timestamptz/, 'PIT — 그때 알 수 있었던 값')
+  assert.match(c, /checked_at timestamptz/, '수집 생존 — 마지막으로 확인한 시각')
+})
+
+test('★★ 이미 있던 표에도 컬럼을 붙인다 — CREATE IF NOT EXISTS 는 기존 표를 안 고친다', () => {
+  const alters = alterSql('t')
+  //  ★ 이게 없으면 **새 표에만** 시각이 생기고, 정작 오래 돌던 표엔 영영 안 생긴다.
+  assert.equal(alters.length, 2)
+  for (const q of alters) assert.match(q, /ADD COLUMN IF NOT EXISTS/)
+  //  ★★★ DEFAULT 를 주면 과거 행이 전부 "지금" 수집된 것으로 채워진다 — 그게 위조다.
+  for (const q of alters) {
+    assert.equal(/DEFAULT/i.test(q), false, '★ DEFAULT 는 과거 행의 시각을 지어낸다: ' + q)
+  }
+})
+
+test('★ 시각은 DB 시계(now())로 찍는다 — 수집기 호스트 시계가 틀어져도 표는 일관된다', () => {
+  //  ★ 파라미터로 넘기면 호스트 시계를 믿는 것이고, 그건 시간대 사고의 단골 자리다.
+  assert.match(upsertSql('t', '($1,$2,now(),now())'), /VALUES \(\$1,\$2,now\(\),now\(\)\)/)
+})

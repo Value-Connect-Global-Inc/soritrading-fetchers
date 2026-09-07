@@ -25,7 +25,12 @@ node run.mjs --check             # what is in the DATABASE now (no fetching)
 ```
 
 ★ `--check` is the one that proves the load: it reads your tables and prints rows, covered
-range, newest value and how old it is. "The fetch printed OK" and "the table has data" are
+range, newest value, how old it is, **and when we last checked**. Those last two are different
+questions: a value that is 4 days old but was checked an hour ago means *the source has not
+published*, which is normal for a weekly series. A value 4 days old that was also checked 4 days
+ago means *collection stopped*. Folding them into one number hides the second case — we hit
+exactly that on 2026-09-07 and had to diff cron logs against `max(ts)` by hand to tell them apart.
+"The fetch printed OK" and "the table has data" are
 different claims — a source that changes shape can satisfy the first and not the second.
 
 ★ Load with a **write account** (usually `postgres`), and give SoriTrading a **read-only
@@ -81,7 +86,14 @@ Create `fetchers/<name>/index.mjs` and export the two things below. The contract
 ```js
 export const meta = {
   key: 'my-source',                  // must match the folder name
-  table: 'my_table',                 // created as (ts bigint PK, v numeric)
+  table: 'my_table',                 // created as (ts bigint PK, v numeric,
+                                     //   ingested_at timestamptz, checked_at timestamptz)
+                                     // ★ ingested_at = first time this row appeared (never
+                                     //   rewritten — it answers "what could you have known
+                                     //   then?"). checked_at = last time we looked (rewritten
+                                     //   on every run — it answers "is collection alive?").
+                                     //   Existing tables get the columns added on the next run;
+                                     //   old rows keep NULL, because we do not know.
   title: 'Human readable name',
   source: 'example.com',             // where it comes from, so a human can verify it
   url: 'https://example.com/api',

@@ -97,8 +97,20 @@ if (arg === '--check') {
       const age = Math.floor((Date.now() / 1000 - st.last) / 86400)
       //  ★ Staleness is reported, not judged: a weekly series is 6 days old on purpose,
       //    and only the person who knows the source can say whether that is wrong.
+      //
+      //  ★★ 2026-09-07: `(4d old)` 하나로는 **세 가지가 구별되지 않았다** —
+      //    소스가 안 줬다 / cron 이 죽었다 / 돌았는데 실패했다.
+      //    실제로 그걸 가르려고 cron 로그와 max(ts) 를 손으로 대조해야 했다.
+      //    ⇒ **언제 확인했는지**를 함께 적는다. 그러면 한 줄로 갈린다:
+      //       값이 4일 됐는데 오늘 확인함  → 소스가 안 준 것(정상)
+      //       값도 4일, 확인도 4일 전      → 수집이 멈춘 것
+      const chk = !st.hasChecked
+        ? 'checked=?(old table — runs once and the column appears)'
+        : st.checkedAt
+          ? `checked ${Math.floor((Date.now() - Date.parse(st.checkedAt)) / 3600e3)}h ago`
+          : 'checked=never(column exists, no run yet)'
       console.log(`  ${key.padEnd(22)} ${String(st.rows).padStart(7)} rows  ${day(st.first)} → ${day(st.last)}`
-        + `  last=${st.lastValue}  (${age}d old)`)
+        + `  last=${st.lastValue}  (${age}d old, ${chk})`)
     } else {
       bad++
       console.log(`  ${key.padEnd(22)} ${st.state.toUpperCase()} — ${st.note}`)
