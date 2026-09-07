@@ -183,3 +183,52 @@ test('★ 시각은 DB 시계(now())로 찍는다 — 수집기 호스트 시계
   //  ★ 파라미터로 넘기면 호스트 시계를 믿는 것이고, 그건 시간대 사고의 단골 자리다.
   assert.match(upsertSql('t', '($1,$2,now(),now())'), /VALUES \(\$1,\$2,now\(\),now\(\)\)/)
 })
+
+// ══ 깨우기(NOTIFY) — 듣는 쪽과 **같은 이름**에 보내는가 (#228) ═══════════════════
+//
+//  ★★★ 이 채널 이름은 **다른 리포(coinsori-trading/agent/lib/datachannel.js)** 가 LISTEN 한다.
+//    두 쪽이 서로를 모른 채 각자 규칙을 고르면 **에러 없이 조용히 안 만난다** —
+//    kis.js 의 ymd/kstEpoch 가 정확히 그랬다. 그래서 기대값을 **문자열로 직접 적는다**
+//    (구현 함수로 기대값을 만들면 무엇을 비교하든 통과한다).
+
+test('★★★ 채널 이름 — 듣는 쪽과 같은 문자열이어야 한다', async () => {
+  const { channelFor, CHANNEL_PREFIX } = await import('../lib/notify.mjs')
+  assert.equal(CHANNEL_PREFIX, 'sori1_')
+  assert.equal(channelFor('fear_greed'), 'sori1_fear_greed')
+  assert.equal(channelFor('public.fear_greed'), 'sori1_fear_greed',
+    '★ 스키마는 뗀다 — 우리는 표 이름만 알고, 유저 선언은 public. 이 붙어 있을 수 있다')
+  assert.equal(channelFor('PUBLIC.Fear_Greed'), 'sori1_fear_greed')
+})
+
+test('★★ 규칙에 안 맞으면 null — 채널을 지어내지 않는다', async () => {
+  const { channelFor } = await import('../lib/notify.mjs')
+  for (const v of ['a.b.c', 'x; DROP TABLE y', 'a b', '1table', '', null, undefined, 42])
+    assert.equal(channelFor(v), null, JSON.stringify(v))
+})
+
+test('★★★ NOTIFY 문 — 채널은 식별자(인용), 페이로드는 **바인드**한다', async () => {
+  const { notifySql, notifyPayload } = await import('../lib/notify.mjs')
+  assert.equal(notifySql('sori1_fear_greed'), 'NOTIFY "sori1_fear_greed", $1')
+  //  ★ 페이로드를 문자열로 이어붙이면 그게 주입 자리다. $1 이 아니면 실패해야 한다.
+  assert.match(notifySql('x'), /\$1$/)
+  assert.equal(notifyPayload({ last: 1700000000, n: 3 }), '{"v":1,"last":1700000000,"n":3}')
+  assert.equal(notifyPayload(), '{"v":1,"last":null,"n":0}')
+})
+
+test('★★ 우리가 실제로 쓰는 표들이 전부 채널을 만들 수 있다', async () => {
+  const { channelFor } = await import('../lib/notify.mjs')
+  const all = await loadAll()
+  for (const { key, meta } of all) {
+    assert.ok(channelFor(meta.table), `${key}: 표 '${meta.table}' 로 채널을 못 만든다 — `
+      + '이 페처의 데이터는 실시간 깨우기를 못 쓴다(값은 정상, 지연만 김)')
+  }
+})
+
+test('★★★ 값은 페이로드로 다니지 않는다 — 경로가 둘이면 숫자가 갈린다(§0.5 ④)', async () => {
+  const { notifyPayload } = await import('../lib/notify.mjs')
+  //  ★ 실제 값(v 컬럼)을 실을 자리가 **없어야** 한다. 있으면 듣는 쪽이 언젠가 그걸 쓴다.
+  const p = JSON.parse(notifyPayload({ last: 1, n: 1, value: 73, v: 73 }))
+  assert.deepEqual(Object.keys(p).sort(), ['last', 'n', 'v'])
+  assert.equal(p.v, 1, "★ 'v' 는 페이로드 **버전**이지 값이 아니다 — 값을 실을 수 있게 두지 않는다")
+  assert.equal(p.value, undefined)
+})
