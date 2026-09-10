@@ -36,6 +36,27 @@ different claims — a source that changes shape can satisfy the first and not t
 ★ Load with a **write account** (usually `postgres`), and give SoriTrading a **read-only
 account**. If a read-only account rejects the INSERT, that is working as intended.
 
+### Optional: wake a strategy the moment new rows land
+
+By default a strategy picks up new data on its next poll. Set `SORI_WAKE_REDIS_URL` in `.env`
+and the loader also publishes a wake-up on `sori:data:v1:<table>` right after it inserts, so a
+subscriber can re-read straight away.
+
+```sh
+SORI_WAKE_REDIS_URL=redis://127.0.0.1:6379
+```
+
+★ This is optional and it changes **latency only** — without it the data is just as correct.
+Values never travel through the channel; the payload is a cursor hint and the woken side re-runs
+its own query. Pub/sub has no delivery guarantee, so a missed message is harmless — the next poll
+catches up. That is exactly why this axis can be switched on and off without risk.
+
+★ Publisher and subscriber must reach the same Redis. On a single machine that is
+`redis://127.0.0.1:6379`; for several machines, split networks, or a managed free tier, the
+walkthrough is at **/guide/redis** on the site. If the address is missing the loader skips
+publishing and says so in the run result (`published: {skipped:'no-url'}`) rather than failing
+quietly.
+
 ## What is included
 
 Everything below is **free and needs no API key** (verified Aug 2026). `node run.mjs list` is
