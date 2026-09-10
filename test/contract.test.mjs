@@ -232,3 +232,69 @@ test('★★★ 값은 페이로드로 다니지 않는다 — 경로가 둘이�
   assert.equal(p.v, 1, "★ 'v' 는 페이로드 **버전**이지 값이 아니다 — 값을 실을 수 있게 두지 않는다")
   assert.equal(p.value, undefined)
 })
+
+// ══ 깨우기(Redis PUBLISH) — 축의 세 번째 값 (#225 · SIGNALS §8-k) ════════════════
+//
+//  ★★★ 위 NOTIFY 와 **같은 위험**이다: 이 채널 이름은 다른 리포
+//    (coinsori-trading/agent/lib/datachannel.js 의 redisChannelFor)가 SUBSCRIBE 한다.
+//    그리고 여기는 한 겹 더 위험하다 — **기관은 우리 코드를 아예 안 쓴다.** 문서만 보고
+//    자기 스크립트로 PUBLISH 한다. 그래서 기대값을 문자열로 직접 적는다.
+
+test('★★★ Redis 채널 이름 — 듣는 쪽·문서와 같은 문자열이어야 한다', async () => {
+  const { redisChannelFor, REDIS_CHANNEL_PREFIX } = await import('../lib/redis.mjs')
+  assert.equal(REDIS_CHANNEL_PREFIX, 'sori:data:v1:')
+  assert.equal(redisChannelFor('fear_greed'), 'sori:data:v1:fear_greed')
+  assert.equal(redisChannelFor('public.fear_greed'), 'sori:data:v1:fear_greed',
+    '★ 스키마는 뗀다 — NOTIFY 와 같은 이유(우리는 표 이름만 안다)')
+  assert.equal(redisChannelFor('PUBLIC.Fear_Greed'), 'sori:data:v1:fear_greed')
+})
+
+test('★★ Redis 도 규칙에 안 맞으면 null — 채널을 지어내지 않는다', async () => {
+  const { redisChannelFor } = await import('../lib/redis.mjs')
+  for (const v of ['a.b.c', 'x; DROP TABLE y', 'a b', '1table', '', null, undefined, 42])
+    assert.equal(redisChannelFor(v), null, JSON.stringify(v))
+})
+
+test('★★★ 두 전송이 **같은 표 규칙**을 쓴다 — 하나만 깨어나는 일이 없게', async () => {
+  const { channelFor } = await import('../lib/notify.mjs')
+  const { redisChannelFor } = await import('../lib/redis.mjs')
+  //  ★ 규칙이 갈리면 표에 따라 notify 는 되고 redis 는 안 되는(또는 반대) 상태가 되고,
+  //    유저는 "왜 이 데이터셋만 느리지"를 영원히 못 찾는다. 되고/안 되고가 **일치**해야 한다.
+  for (const v of ['fear_greed', 'public.fear_greed', 'a.b.c', 'a b', '1table', '', null, 42]) {
+    assert.equal(channelFor(v) === null, redisChannelFor(v) === null,
+      `표 '${JSON.stringify(v)}' 에서 두 전송의 판정이 갈린다`)
+  }
+})
+
+test('★★★ Redis 페이로드도 값을 싣지 않는다 — pub/sub 는 전달 보장이 없다', async () => {
+  const { redisPayload } = await import('../lib/redis.mjs')
+  //  ★ NOTIFY 보다 더 엄한 이유: 놓친 메시지는 **다시 안 온다.** 값을 실었는데 놓치면
+  //    그 값은 영영 안 온 것이고, 커서 힌트면 다음 폴링이 따라잡는다.
+  const p = JSON.parse(redisPayload({ last: 1, n: 1, value: 73, v: 73 }))
+  assert.deepEqual(Object.keys(p).sort(), ['last', 'n', 'v'])
+  assert.equal(p.v, 1, "★ 'v' 는 페이로드 **버전**이지 값이 아니다")
+  assert.equal(p.value, undefined)
+  //  ★★ 그리고 두 전송의 페이로드가 **같은 모양**이어야 한다 — 읽는 쪽이 전송을 알 필요가 없게.
+  const { notifyPayload } = await import('../lib/notify.mjs')
+  assert.equal(redisPayload({ last: 1700000000, n: 3 }), notifyPayload({ last: 1700000000, n: 3 }))
+})
+
+test('★★★ 주소가 없으면 **말한다** — 조용한 false 로 접지 않는다', async () => {
+  const { publishWake } = await import('../lib/redis.mjs')
+  //  ★ 3상태: 안 씀(no-url) / 표가 나쁨(bad-table) / 못 씀·실패. 셋을 같은 false 로 접으면
+  //    유저는 무엇을 고쳐야 하는지 모른다 — 그게 §8-k 0-b 의 거짓 고지가 생긴 자리다.
+  assert.deepEqual(await publishWake({ table: 'fear_greed' }), { ok: false, skipped: 'no-url' })
+  assert.deepEqual(await publishWake({ url: null, table: 'fear_greed' }), { ok: false, skipped: 'no-url' })
+  const bad = await publishWake({ url: 'redis://127.0.0.1:1', table: 'a b' })
+  assert.equal(bad.ok, false)
+  assert.equal(bad.skipped, 'bad-table', '★ 표가 나쁜 것과 주소가 없는 것은 다른 사실이다')
+})
+
+test('★★ 깨우기 실패가 수집을 죽이지 않는다 — 지연의 문제이지 값의 문제가 아니다', async () => {
+  const { publishWake } = await import('../lib/redis.mjs')
+  //  ★ 닫힌 포트로 쏜다. throw 하면 이 줄에서 테스트가 죽는다 — 그게 곧 "수집이 죽는다"다.
+  const r = await publishWake({ url: 'redis://127.0.0.1:1', table: 'fear_greed' })
+  assert.equal(r.ok, false)
+  assert.equal(r.channel, 'sori:data:v1:fear_greed', '★ 실패해도 어느 채널이었는지는 남긴다')
+  assert.ok(r.error || r.skipped, '왜 안 됐는지가 없다')
+})
