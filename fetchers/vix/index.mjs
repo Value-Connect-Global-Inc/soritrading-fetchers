@@ -13,6 +13,7 @@ export const meta = {
   key: 'vix',
   table: 'macro_vix',
   title: 'CBOE Volatility Index (VIX)',
+  describe: 'CBOE Volatility Index (FRED VIXCLS): equity 30-day implied volatility, index points, daily close, trading days only, since 1990.',
   source: 'FRED (VIXCLS)',
   url: fredUrl('VIXCLS'),
   //  FRED publishes after the US close — early Asian morning is safely after it.

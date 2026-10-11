@@ -22,6 +22,7 @@ export const meta = {
   key: 'btc-dvol',
   table: 'btc_dvol',
   title: 'BTC implied volatility (Deribit DVOL)',
+  describe: 'Deribit DVOL: BTC 30-day implied volatility, annualised percent (55 = 55%/yr), daily close, since 2021-03.',
   source: 'Deribit',
   url: `${API}?currency=BTC&resolution=1D`,
   //  Deribit's daily candle closes at 00:00 UTC — fetch after it is sealed.

@@ -8,6 +8,7 @@ export const meta = {
   key: 'btc-hashrate',
   table: 'btc_hashrate',
   title: 'BTC hash rate',
+  describe: 'Bitcoin network hash rate, TH/s, daily, blockchain.com. Large slow-moving level: compare it to its own moving average, not a fixed threshold.',
   source: 'blockchain.com',
   url: chartUrl('hash-rate'),
   cron: '35 1 * * *',

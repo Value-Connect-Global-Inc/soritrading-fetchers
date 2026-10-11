@@ -13,6 +13,7 @@ export const meta = {
   key: 'defi-tvl',
   table: 'defi_tvl',
   title: 'DeFi TVL, all chains',
+  describe: 'Total value locked across all DeFi chains, USD, daily, DefiLlama. Rises with asset prices even when no new capital arrives.',
   source: 'DefiLlama',
   url: 'https://api.llama.fi/v2/historicalChainTvl',
   cron: '15 2 * * *',

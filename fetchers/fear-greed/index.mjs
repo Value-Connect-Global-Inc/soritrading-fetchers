@@ -8,6 +8,7 @@ export const meta = {
   key: 'fear-greed',
   table: 'fear_greed',
   title: 'Crypto Fear & Greed Index',
+  describe: 'Crypto Fear & Greed Index, 0 (extreme fear) to 100 (extreme greed), daily, since 2018-02, alternative.me.',
   source: 'alternative.me',
   url: 'https://api.alternative.me/fng/?limit=0',
   //  The source updates at UTC midnight — fetch a little after, not on the dot.

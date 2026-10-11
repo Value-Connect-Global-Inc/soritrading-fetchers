@@ -10,6 +10,7 @@ export const meta = {
   key: 'fed-funds',
   table: 'macro_fed_funds',
   title: 'US federal funds rate (practice)',
+  describe: 'US effective federal funds rate, percent, daily (FRED DFF). Practice series: ctx.macro carries the same axis.',
   source: 'FRED (DFF)',
   url: fredUrl('DFF'),
   //  FRED updates during US business hours — fetch in the early Asian morning.

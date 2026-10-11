@@ -12,6 +12,7 @@ export const meta = {
   key: 'yield-curve',
   table: 'macro_yield_curve',
   title: 'US 10y-2y Treasury spread',
+  describe: 'US 10-year minus 2-year Treasury spread, percentage points, daily, business days only (FRED T10Y2Y). Can be negative (inverted curve).',
   source: 'FRED (T10Y2Y)',
   url: fredUrl('T10Y2Y'),
   cron: '25 7 * * *',

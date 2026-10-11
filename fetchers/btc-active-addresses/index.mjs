@@ -8,6 +8,7 @@ export const meta = {
   key: 'btc-active-addresses',
   table: 'btc_active_addresses',
   title: 'BTC active addresses',
+  describe: 'Bitcoin daily unique active addresses (count), daily, blockchain.com. On-chain usage, a different axis from price.',
   source: 'blockchain.com',
   url: chartUrl('n-unique-addresses'),
   cron: '45 1 * * *',

@@ -43,7 +43,7 @@ async function runOne(key, url) {
   if (rows.length < MIN_ROWS) {
     throw new Error(`${key}: only ${rows.length} usable rows (minimum ${MIN_ROWS}) — check whether the source response changed`)
   }
-  const s = await upsertRows(url, meta.table, rows)
+  const s = await upsertRows(url, meta.table, rows, { describe: meta.describe })
   console.log(`[${new Date().toISOString()}] ${key} -> ${meta.table}: ${s.total} rows, ${day(s.first)} to ${day(s.last)} (${s.inserted} sent this run)`)
   return { meta, stat: s }
 }

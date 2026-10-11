@@ -12,6 +12,7 @@ export const meta = {
   key: 'dollar-index',
   table: 'macro_dollar_index',
   title: 'US dollar index, broad (Fed)',
+  describe: 'Fed broad trade-weighted US dollar index (FRED DTWEXBGS), Jan 2006 = 100, daily, business days only. NOT the ICE DXY.',
   source: 'FRED (DTWEXBGS)',
   url: fredUrl('DTWEXBGS'),
   cron: '35 7 * * *',

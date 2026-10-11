@@ -12,6 +12,7 @@ export const meta = {
   key: 'btc-miner-revenue',
   table: 'btc_miner_revenue',
   title: 'BTC miner revenue (USD/day)',
+  describe: 'Bitcoin miner revenue, USD per day (block subsidy + fees), daily, blockchain.com. USD-denominated, so much of its movement is BTC price.',
   source: 'blockchain.com',
   url: chartUrl('miners-revenue'),
   cron: '55 1 * * *',

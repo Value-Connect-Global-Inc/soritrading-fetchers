@@ -76,6 +76,10 @@ the live list — this table is a description, the directory is the truth.
 | `btc-miner-revenue` | `btc_miner_revenue` | miner revenue USD/day | miner economics, the supply side |
 | `btc-active-addresses` | `btc_active_addresses` | daily active addresses | chain usage |
 
+★ Each fetcher's one-line `describe` is written as the table's `COMMENT` on every load. SoriTrading reads it
+when it lists your tables and pre-fills the dataset description, so you do not have to type one. If you add
+your own tables, `COMMENT ON TABLE my_table IS 'what it is, unit, frequency'` does the same.
+
 Three habits that save a bad backtest:
 
 - **Holes are real.** Market series (VIX, yield curve, dollar index) skip US holidays, and

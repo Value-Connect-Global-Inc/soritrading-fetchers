@@ -12,6 +12,7 @@ export const meta = {
   key: 'stablecoin-mcap',
   table: 'stablecoin_mcap',
   title: 'Total stablecoin market cap',
+  describe: 'Total stablecoin market cap, USD, daily, DefiLlama. Sum of all issuers; slow-moving liquidity regime input.',
   source: 'DefiLlama',
   //  ★★ NOT api.llama.fi. DefiLlama's own docs say "base URL for ALL free endpoints is
   //    api.llama.fi", and that host answers this path with an EMPTY 200 — the stablecoin

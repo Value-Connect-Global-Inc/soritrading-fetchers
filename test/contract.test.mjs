@@ -18,6 +18,9 @@ test('every fetcher satisfies the meta contract (the directory is the list)', as
     assert.equal(meta.key, key, `${key}: meta.key mismatch`)
     assertTable(meta.table)                                     // identifier whitelist
     assert.ok(meta.title && meta.source, `${key}: title and source are required`)
+    //  ★ describe → table COMMENT → dataset description in SoriTrading (an AI reads it). English, one line.
+    assert.ok(typeof meta.describe === 'string' && meta.describe.length >= 20 && meta.describe.length <= 300, `${key}: describe must be one line, 20-300 chars`)
+    assert.ok(/^[\x20-\x7e]+$/.test(meta.describe), `${key}: describe must be plain ASCII English (global users)`)
     assert.ok(/^https:\/\//.test(meta.url), `${key}: url must be https`)
     assert.match(meta.cron, CRON_RE, `${key}: cron must have five fields`)
     //  ★ An empty license makes "not checked" indistinguishable from "no restrictions",
@@ -297,4 +300,12 @@ test('★★ 깨우기 실패가 수집을 죽이지 않는다 — 지연의 문
   assert.equal(r.ok, false)
   assert.equal(r.channel, 'sori:data:v1:fear_greed', '★ 실패해도 어느 채널이었는지는 남긴다')
   assert.ok(r.error || r.skipped, '왜 안 됐는지가 없다')
+})
+
+import { commentSql } from '../lib/db.mjs'
+test('commentSql — literal with doubled quotes, refuses control chars and over-long text', () => {
+  assert.equal(commentSql('fear_greed', "Crypto Fear & Greed, it's 0-100"), "COMMENT ON TABLE fear_greed IS 'Crypto Fear & Greed, it''s 0-100'")
+  assert.throws(() => commentSql('fear_greed', 'a\nb'), /printable/)
+  assert.throws(() => commentSql('fear_greed', 'x'.repeat(301)), /1-300/)
+  assert.throws(() => commentSql('bad name', 'ok text'), /invalid identifier/)
 })
