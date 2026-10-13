@@ -17,7 +17,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { listKeys, loadFetcher, loadAll } from './lib/registry.mjs'
-import { upsertRows, tableStats } from './lib/db.mjs'
+import { upsertRows, tableStats, commentNote } from './lib/db.mjs'
 import { mergeCrontab, cronLines } from './lib/cron.mjs'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -44,7 +44,8 @@ async function runOne(key, url) {
     throw new Error(`${key}: only ${rows.length} usable rows (minimum ${MIN_ROWS}) — check whether the source response changed`)
   }
   const s = await upsertRows(url, meta.table, rows, { describe: meta.describe })
-  console.log(`[${new Date().toISOString()}] ${key} -> ${meta.table}: ${s.total} rows, ${day(s.first)} to ${day(s.last)} (${s.inserted} sent this run)`)
+  const cn = commentNote(s.commented)
+  console.log(`[${new Date().toISOString()}] ${key} -> ${meta.table}: ${s.total} rows, ${day(s.first)} to ${day(s.last)} (${s.inserted} sent this run)${cn ? ' · ' + cn : ''}`)
   return { meta, stat: s }
 }
 
@@ -110,7 +111,7 @@ if (arg === '--check') {
           ? `checked ${Math.floor((Date.now() - Date.parse(st.checkedAt)) / 3600e3)}h ago`
           : 'checked=never(column exists, no run yet)'
       console.log(`  ${key.padEnd(22)} ${String(st.rows).padStart(7)} rows  ${day(st.first)} → ${day(st.last)}`
-        + `  last=${st.lastValue}  (${age}d old, ${chk})`)
+        + `  last=${st.lastValue}  (${age}d old, ${chk}, ${st.comment ? 'comment=yes' : 'comment=NONE'})`)
     } else {
       bad++
       console.log(`  ${key.padEnd(22)} ${st.state.toUpperCase()} — ${st.note}`)

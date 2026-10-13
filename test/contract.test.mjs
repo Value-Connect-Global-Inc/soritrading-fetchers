@@ -309,3 +309,11 @@ test('commentSql — literal with doubled quotes, refuses control chars and over
   assert.throws(() => commentSql('fear_greed', 'x'.repeat(301)), /1-300/)
   assert.throws(() => commentSql('bad name', 'ok text'), /invalid identifier/)
 })
+
+import { commentNote } from '../lib/db.mjs'
+test('commentNote — a failed COMMENT is printed, not swallowed', () => {
+  assert.equal(commentNote(null), '')
+  assert.equal(commentNote({ ok: true }), 'comment set')
+  assert.equal(commentNote({ ok: false, error: 'must be owner of table fear_greed' }),
+    'COMMENT FAILED: must be owner of table fear_greed (table owner or superuser required)')
+})
