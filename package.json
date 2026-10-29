@@ -6,9 +6,9 @@
   "description": "Pull free public data into your own Postgres for SoriTrading strategies. One folder per fetcher, cron included.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/valueconnectinc/soritrading-fetchers.git"
+    "url": "git+https://github.com/Value-Connect-Global-Inc/soritrading-fetchers.git"
   },
-  "homepage": "https://github.com/valueconnectinc/soritrading-fetchers#readme",
+  "homepage": "https://github.com/Value-Connect-Global-Inc/soritrading-fetchers#readme",
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {

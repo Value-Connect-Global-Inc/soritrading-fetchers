@@ -13,7 +13,7 @@ One directory = one fetcher. Adding a source is a folder and a single `index.mjs
 ## Quick start
 
 ```sh
-git clone https://github.com/valueconnectinc/soritrading-fetchers ~/soritrading-fetchers
+git clone https://github.com/Value-Connect-Global-Inc/soritrading-fetchers ~/soritrading-fetchers
 cd ~/soritrading-fetchers
 npm install                      # one dependency: pg
 cp .env.example .env             # DATABASE_URL — use a WRITE account
@@ -23,6 +23,9 @@ node run.mjs all                 # fetch everything once
 node run.mjs --install-cron      # install each fetcher's own schedule into crontab
 node run.mjs --check             # what is in the DATABASE now (no fetching)
 ```
+
+Already cloned from the old address? Point the existing clone at the new one:
+`git remote set-url origin https://github.com/Value-Connect-Global-Inc/soritrading-fetchers`
 
 ★ `--check` is the one that proves the load: it reads your tables and prints rows, covered
 range, newest value, how old it is, **and when we last checked**. Those last two are different

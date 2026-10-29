@@ -189,7 +189,7 @@ test('★ 시각은 DB 시계(now())로 찍는다 — 수집기 호스트 시계
 
 // ══ 깨우기(NOTIFY) — 듣는 쪽과 **같은 이름**에 보내는가 (#228) ═══════════════════
 //
-//  ★★★ 이 채널 이름은 **다른 리포(coinsori-trading/agent/lib/datachannel.js)** 가 LISTEN 한다.
+//  ★★★ 이 채널 이름은 **다른 리포(soritrading-agent/agent/lib/datachannel.js)** 가 LISTEN 한다.
 //    두 쪽이 서로를 모른 채 각자 규칙을 고르면 **에러 없이 조용히 안 만난다** —
 //    kis.js 의 ymd/kstEpoch 가 정확히 그랬다. 그래서 기대값을 **문자열로 직접 적는다**
 //    (구현 함수로 기대값을 만들면 무엇을 비교하든 통과한다).
@@ -239,7 +239,7 @@ test('★★★ 값은 페이로드로 다니지 않는다 — 경로가 둘이�
 // ══ 깨우기(Redis PUBLISH) — 축의 세 번째 값 (#225 · SIGNALS §8-k) ════════════════
 //
 //  ★★★ 위 NOTIFY 와 **같은 위험**이다: 이 채널 이름은 다른 리포
-//    (coinsori-trading/agent/lib/datachannel.js 의 redisChannelFor)가 SUBSCRIBE 한다.
+//    (soritrading-agent/agent/lib/datachannel.js 의 redisChannelFor)가 SUBSCRIBE 한다.
 //    그리고 여기는 한 겹 더 위험하다 — **기관은 우리 코드를 아예 안 쓴다.** 문서만 보고
 //    자기 스크립트로 PUBLISH 한다. 그래서 기대값을 문자열로 직접 적는다.
 
