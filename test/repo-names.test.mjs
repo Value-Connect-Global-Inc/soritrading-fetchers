@@ -13,7 +13,7 @@ const sh = (body) => execFileSync('bash', ['-c', `. "${LIB}"; ${body}`], { encod
 test('repo-names: table values', () => {
   assert.equal(sh('echo "$SORI_GH_ORG"'), 'Value-Connect-Global-Inc')
   assert.equal(sh('echo "$SORI_REPO_ROLES"'), 'frontend agent backend fetchers')
-  assert.equal(sh('echo "$SORI_SERVER_ROOT"'), '/opt/coinsori')
+  assert.equal(sh('echo "$SORI_SERVER_ROOT"'), '/opt/sori')
   const want = {
     frontend: ['sori-frontend', 'coinsori-prototype'],
     agent: ['soritrading-agent', 'coinsori-trading'],

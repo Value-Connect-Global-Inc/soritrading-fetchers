@@ -19,7 +19,7 @@ SORI_REPO_backend="sori-backend"
 SORI_REPO_OLD_backend="coinsori-community"
 SORI_REPO_fetchers="soritrading-fetchers"
 SORI_REPO_OLD_fetchers=""
-SORI_SERVER_ROOT="/opt/coinsori"
+SORI_SERVER_ROOT="/opt/sori"
 #  ── 표 끝 ──
 
 #  모르는 역할이면 반환 1.
