@@ -35,6 +35,16 @@ ago means *collection stopped*. Folding them into one number hides the second ca
 exactly that on 2026-09-07 and had to diff cron logs against `max(ts)` by hand to tell them apart.
 "The fetch printed OK" and "the table has data" are
 different claims — a source that changes shape can satisfy the first and not the second.
+`--check` also prints `v=0: N` per table. For the dollar index and VIX any 0 is wrong (neither can
+be zero); for the yield curve some 0.00 days are real.
+
+★ **Old zeros repair themselves.** An earlier FRED parser stored blank / `.` cells (holidays) as 0,
+and an upsert never removes a row, so fixing the parser left those 0s behind. Every run now deletes
+stored rows on dates **the source lists without a number** in that same response, and logs
+`repair: deleted N …`. The rule is "the source gave no number for that day", never "the value is
+0" — T10Y2Y really prints 0.00 on some days and those rows stay. If the fetch fails nothing is
+deleted. The blockchain.com, DefiLlama, alternative.me and Deribit parsers apply the same rule
+(a `null` / blank value is a hole, not 0).
 
 ★ Load with a **write account** (usually `postgres`), and give SoriTrading a **read-only
 account**. If a read-only account rejects the INSERT, that is working as intended.
@@ -68,16 +78,23 @@ the live list — this table is a description, the directory is the truth.
 | fetcher | table | what it is | why it is a different axis than price |
 |---|---|---|---|
 | `fear-greed` | `fear_greed` | Crypto Fear & Greed, 0–100 (2018→) | crowd sentiment, not price |
-| `vix` | `macro_vix` | CBOE VIX daily close (1990→) | equity market's expected volatility |
+| `vix` ⚠ | `macro_vix` | CBOE VIX daily close (1990→) | equity market's expected volatility |
 | `btc-dvol` | `btc_dvol` | Deribit DVOL, BTC implied vol % (2021-03→) | crypto's own vol — disagrees with VIX on crypto-only events |
-| `yield-curve` | `macro_yield_curve` | US 10y−2y spread, **can be negative** | recession / liquidity regime |
-| `fed-funds` | `macro_fed_funds` | US policy rate | the price of money |
-| `dollar-index` | `macro_dollar_index` | Fed broad USD index (not ICE "DXY") | global liquidity tightness |
+| `yield-curve` ⚠ | `macro_yield_curve` | US 10y−2y spread, **can be negative** | recession / liquidity regime |
+| `fed-funds` ⚠ | `macro_fed_funds` | US policy rate | the price of money |
+| `dollar-index` ⚠ | `macro_dollar_index` | Fed broad USD index (not ICE "DXY") | global liquidity tightness |
 | `stablecoin-mcap` | `stablecoin_mcap` | total stablecoin market cap | dry powder already inside crypto |
 | `defi-tvl` | `defi_tvl` | DeFi TVL, all chains | on-chain risk appetite (co-moves with price — check that first) |
 | `btc-hashrate` | `btc_hashrate` | BTC hash rate | chain security / miner capacity |
 | `btc-miner-revenue` | `btc_miner_revenue` | miner revenue USD/day | miner economics, the supply side |
 | `btc-active-addresses` | `btc_active_addresses` | daily active addresses | chain usage |
+
+⚠ **Overlaps SoriTrading's base collection.** The agent already collects the same FRED series —
+`base_vix` (VIXCLS), `base_t10y2y` (T10Y2Y), `base_fedfunds` (DFF), `base_usd_broad` (DTWEXBGS) —
+timestamped by when each value was **published** (`avail_ts` = observation date + release lag).
+These four tables are keyed by the **observation date**, so a backtest reading them sees each value
+a day or more before it existed. In strategies use `ctx.data('base_vix')` etc. The fetchers stay
+(removing them would break crontabs that already call them); `node run.mjs list` marks them.
 
 ★ Each fetcher's one-line `describe` is written as the table's `COMMENT` on every load. SoriTrading reads it
 when it lists your tables and pre-fills the dataset description, so you do not have to type one. If you add
@@ -148,9 +165,9 @@ Three rules:
 `fetchRows` takes an injectable `fetchImpl` so the contract test can verify parsing without
 touching the network. Run `npm test` before opening a pull request.
 
-★ `fed-funds` overlaps with SoriTrading's built-in `ctx.macro`. Feeding the same value through
-two paths makes a result ambiguous about which one it used, so treat that one as practice for
-the integration rather than something to build on.
+★ Before adding a macro fetcher, check SoriTrading's base collection (`base_*` keys): if the series
+is already there, it is there with the release lag applied, and a second copy keyed by observation
+date only adds a way to look ahead. Set `meta.overlaps` to the base key if you add one anyway.
 
 ## Scheduling
 

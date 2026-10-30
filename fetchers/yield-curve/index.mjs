@@ -6,13 +6,16 @@
 //  ★ The value can be NEGATIVE. If a strategy assumes ctx.data() is positive, this series
 //    is where that assumption breaks.
 
-import { parseFredCsv, fredUrl, fetchText } from '../../lib/sources.mjs'
+import { fredRows, fredUrl, fetchText } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'yield-curve',
   table: 'macro_yield_curve',
   title: 'US 10y-2y Treasury spread',
-  describe: 'US 10-year minus 2-year Treasury spread, percentage points, daily, business days only (FRED T10Y2Y). Can be negative (inverted curve).',
+  describe: 'US 10y minus 2y Treasury spread, percentage points, business days (FRED T10Y2Y), can be negative. Stored by observation date with no release lag, so a backtest can see the future; in strategies use SoriTrading base collection ctx.data("base_t10y2y") (same series, release lag applied).',
+  //  ★ Same FRED series the agent's base collection already holds (with avail_ts = obs + release lag).
+  //    `list` shows this; the fetcher is kept so existing crontabs do not break.
+  overlaps: 'base_t10y2y',
   source: 'FRED (T10Y2Y)',
   url: fredUrl('T10Y2Y'),
   cron: '25 7 * * *',
@@ -20,5 +23,7 @@ export const meta = {
 }
 
 export async function fetchRows(fetchImpl = fetch) {
-  return parseFredCsv(await fetchText(fetchImpl, meta.url))
+  //  ★ fredRows attaches the dates FRED lists without a value; the runner deletes stored rows on
+  //    those dates (old-parser zeros). See repairTs in lib/sources.mjs.
+  return fredRows(await fetchText(fetchImpl, meta.url))
 }

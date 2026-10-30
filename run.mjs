@@ -17,7 +17,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { listKeys, loadFetcher, loadAll } from './lib/registry.mjs'
-import { upsertRows, tableStats, commentNote } from './lib/db.mjs'
+import { upsertRows, tableStats, commentNote, repairNote } from './lib/db.mjs'
 import { mergeCrontab, cronLines } from './lib/cron.mjs'
 
 const DIR = path.dirname(fileURLToPath(import.meta.url))
@@ -39,13 +39,20 @@ const day = (s) => new Date(Number(s) * 1000).toISOString().slice(0, 10)
 
 async function runOne(key, url) {
   const { meta, fetchRows } = await loadFetcher(key)
-  const rows = (await fetchRows()).filter(([t, v]) => Number.isFinite(t) && Number.isFinite(v))
+  const raw = await fetchRows()
+  const rows = raw.filter(([t, v]) => Number.isFinite(t) && Number.isFinite(v))
   if (rows.length < MIN_ROWS) {
     throw new Error(`${key}: only ${rows.length} usable rows (minimum ${MIN_ROWS}) — check whether the source response changed`)
   }
-  const s = await upsertRows(url, meta.table, rows, { describe: meta.describe })
+  //  ★ Holes (dates the source listed without a value) drive the repair in upsertRows. A date that
+  //    also has a number in this response is never a hole.
+  const sent = new Set(rows.map(([t]) => t))
+  const holes = Array.isArray(raw.holes) ? raw.holes.filter((t) => !sent.has(t)) : undefined
+  const s = await upsertRows(url, meta.table, rows, { describe: meta.describe, holes })
   const cn = commentNote(s.commented)
   console.log(`[${new Date().toISOString()}] ${key} -> ${meta.table}: ${s.total} rows, ${day(s.first)} to ${day(s.last)} (${s.inserted} sent this run)${cn ? ' · ' + cn : ''}`)
+  const rn = repairNote(s.repaired)
+  if (rn) console.log(`[${new Date().toISOString()}] ${key} -> ${meta.table}: ${rn}`)
   return { meta, stat: s }
 }
 
@@ -60,7 +67,10 @@ if (!arg || arg === 'list' || arg === '--help' || arg === '-h') {
   const items = await loadAll()
   console.log('Available fetchers:')
   for (const { key, meta } of items) {
-    console.log(`  ${key.padEnd(22)} -> ${meta.table.padEnd(22)} ${meta.cron.padEnd(14)} ${meta.source}`)
+    //  ★ Overlap with the agent's base collection is shown, not hidden: the fetcher keeps running for
+    //    users whose cron already calls it, but a strategy should read the base_* key instead.
+    const ov = meta.overlaps ? `  (overlaps SoriTrading base collection — ${meta.overlaps}; use that in strategies)` : ''
+    console.log(`  ${key.padEnd(22)} -> ${meta.table.padEnd(22)} ${meta.cron.padEnd(14)} ${meta.source}${ov}`)
   }
   console.log('\nUsage: node run.mjs <name>|all   ·   node run.mjs --install-cron')
   process.exit(0)
@@ -111,7 +121,7 @@ if (arg === '--check') {
           ? `checked ${Math.floor((Date.now() - Date.parse(st.checkedAt)) / 3600e3)}h ago`
           : 'checked=never(column exists, no run yet)'
       console.log(`  ${key.padEnd(22)} ${String(st.rows).padStart(7)} rows  ${day(st.first)} → ${day(st.last)}`
-        + `  last=${st.lastValue}  (${age}d old, ${chk}, ${st.comment ? 'comment=yes' : 'comment=NONE'})`)
+        + `  last=${st.lastValue}  v=0: ${st.zeros}  (${age}d old, ${chk}, ${st.comment ? 'comment=yes' : 'comment=NONE'})`)
     } else {
       bad++
       console.log(`  ${key.padEnd(22)} ${st.state.toUpperCase()} — ${st.note}`)

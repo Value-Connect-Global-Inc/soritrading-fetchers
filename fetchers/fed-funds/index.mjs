@@ -1,16 +1,20 @@
 // US effective federal funds rate (DFF, daily) — the classic macro regime filter.
 //
-//  ★★ SoriTrading already exposes a similar axis through `ctx.macro`. Feeding the same value
-//    through two paths leaves a result unable to say which one it used, so treat this fetcher
-//    as practice for the integration; prefer ctx.macro in real strategies.
+//  ★★ SoriTrading's base collection (the agent's own FRED pull) already carries DFF as
+//    `base_fedfunds`, timestamped by when it was PUBLISHED (avail_ts). This table is keyed by the
+//    observation date, so a backtest reading it sees each value a day or two early. Use
+//    ctx.data('base_fedfunds') in strategies; this fetcher stays for crontabs that already call it.
 
-import { parseFredCsv, fredUrl, fetchText } from '../../lib/sources.mjs'
+import { fredRows, fredUrl, fetchText } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'fed-funds',
   table: 'macro_fed_funds',
-  title: 'US federal funds rate (practice)',
-  describe: 'US effective federal funds rate, percent, daily (FRED DFF). Practice series: ctx.macro carries the same axis.',
+  title: 'US federal funds rate',
+  describe: 'US effective federal funds rate, percent, daily (FRED DFF). Stored by observation date with no release lag, so a backtest can see the future; in strategies use SoriTrading base collection ctx.data("base_fedfunds") (same series, release lag applied).',
+  //  ★ Same FRED series the agent's base collection already holds (with avail_ts = obs + release lag).
+  //    `list` shows this; the fetcher is kept so existing crontabs do not break.
+  overlaps: 'base_fedfunds',
   source: 'FRED (DFF)',
   url: fredUrl('DFF'),
   //  FRED updates during US business hours — fetch in the early Asian morning.
@@ -20,8 +24,8 @@ export const meta = {
 
 export async function fetchRows(fetchImpl = fetch) {
   //  ★ The CSV parser is shared with the other FRED series (lib/sources.mjs): date-only rows
-  //    are pinned to UTC midnight, and '.' (not published) rows are dropped rather than
-  //    stored as NaN. Keeping a private copy here is how one of them ends up fixed and the
-  //    other not.
-  return parseFredCsv(await fetchText(fetchImpl, meta.url))
+  //    are pinned to UTC midnight, '.' / empty rows are dropped (and listed as holes so the
+  //    runner can delete old-parser zeros on those dates). Keeping a private copy here is how
+  //    one of them ends up fixed and the other not.
+  return fredRows(await fetchText(fetchImpl, meta.url))
 }

@@ -12,7 +12,7 @@
 //    The loop is capped: a source that keeps handing back continuations must not turn a
 //    daily cron into an infinite request loop against someone else's server.
 
-import { fetchJson } from '../../lib/sources.mjs'
+import { fetchJson, num, withHoles } from '../../lib/sources.mjs'
 
 const API = 'https://www.deribit.com/api/v2/public/get_volatility_index_data'
 const START_MS = Date.parse('2021-01-01T00:00:00Z')   // before BTC DVOL history begins
@@ -33,27 +33,35 @@ export const meta = {
 /** One page → [[tsSec, close], …] plus the continuation cursor (null when done). */
 function parsePage(json) {
   const res = (json && json.result) || {}
-  const rows = (Array.isArray(res.data) ? res.data : []).map((c) => {
+  const rows = []
+  const holes = []
+  for (const c of Array.isArray(res.data) ? res.data : []) {
     //  candle = [tsMs, open, high, low, close] — we store the CLOSE, like a daily bar.
-    const ts = Math.floor(Number(c && c[0]) / 1000)
-    const close = Number(c && c[4])
-    return [ts, close]
-  }).filter(([t, v]) => Number.isFinite(t) && Number.isFinite(v))
+    //  ★ num(), not Number(): a null close would have been 0 — a 0% implied volatility.
+    const ts = Math.floor(num(c && c[0]) / 1000)
+    if (!Number.isFinite(ts)) continue
+    const close = num(c[4])
+    if (Number.isFinite(close)) rows.push([ts, close])
+    else holes.push(ts)
+  }
   const cont = Number(res.continuation)
-  return { rows, continuation: Number.isFinite(cont) && cont > 0 ? cont : null }
+  return { rows, holes, continuation: Number.isFinite(cont) && cont > 0 ? cont : null }
 }
 
 export async function fetchRows(fetchImpl = fetch, now = Date.now()) {
   const seen = new Map()   // ts → value; pages can overlap at the boundary
+  const holes = new Set()
   let end = now
   for (let page = 0; page < MAX_PAGES; page++) {
     const url = `${API}?currency=BTC&resolution=1D&start_timestamp=${START_MS}&end_timestamp=${end}`
-    const { rows, continuation } = parsePage(await fetchJson(fetchImpl, url))
+    const { rows, holes: h, continuation } = parsePage(await fetchJson(fetchImpl, url))
     for (const [t, v] of rows) seen.set(t, v)
+    for (const t of h) holes.add(t)
     //  Stop when the source says there is no more, or when it stops moving backwards
     //  (a continuation that does not advance would spin forever).
     if (!continuation || continuation >= end || continuation <= START_MS) break
     end = continuation
   }
-  return [...seen.entries()].sort((a, b) => a[0] - b[0])
+  //  A date one page gave a number for is not a hole, even if an overlapping page left it blank.
+  return withHoles([...seen.entries()].sort((a, b) => a[0] - b[0]), [...holes].filter((t) => !seen.has(t)))
 }

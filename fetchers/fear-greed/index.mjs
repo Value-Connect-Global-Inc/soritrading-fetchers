@@ -2,7 +2,7 @@
 //  `limit=0` returns the full history (since Feb 2018) in one response. It is a sentiment
 //  axis that price alone cannot show, which makes it the best first integration test.
 
-import { fetchJson } from '../../lib/sources.mjs'
+import { fetchJson, num, withHoles } from '../../lib/sources.mjs'
 
 export const meta = {
   key: 'fear-greed',
@@ -19,5 +19,15 @@ export const meta = {
 export async function fetchRows(fetchImpl = fetch) {
   const j = await fetchJson(fetchImpl, meta.url)
   //  `timestamp` is epoch seconds as a string — cast it so the contract (seconds) holds.
-  return (j.data || []).map((d) => [Number(d.timestamp), Number(d.value)])
+  //  ★ num(), not Number(): Number('') is 0 — a blank value would read as "extreme fear".
+  const rows = []
+  const holes = []
+  for (const d of j.data || []) {
+    const t = num(d && d.timestamp)
+    if (!Number.isFinite(t)) continue
+    const v = num(d.value)
+    if (Number.isFinite(v)) rows.push([t, v])
+    else holes.push(t)
+  }
+  return withHoles(rows, holes)
 }

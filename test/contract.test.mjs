@@ -26,6 +26,20 @@ test('every fetcher satisfies the meta contract (the directory is the list)', as
     //  ★ An empty license makes "not checked" indistinguishable from "no restrictions",
     //    so a sentence is mandatory.
     assert.ok(meta.license && meta.license.length > 5, `${key}: a one-line license note is required`)
+    if (meta.overlaps !== undefined) assert.match(meta.overlaps, /^base_[a-z0-9_]+$/, `${key}: overlaps names a base_* key`)
+  }
+})
+
+test('★ macro fetchers that duplicate the base collection say so — and point at base_*, not ctx.macro', async () => {
+  //  ctx.macro was removed from the engine 2026-10-17; an AI reads describe (list_datasets) and would follow it.
+  const want = { 'dollar-index': 'base_usd_broad', vix: 'base_vix', 'yield-curve': 'base_t10y2y', 'fed-funds': 'base_fedfunds' }
+  for (const { key, meta } of await loadAll()) {
+    assert.ok(!/ctx\.macro/.test(meta.describe), `${key}: describe still mentions ctx.macro`)
+    if (want[key]) {
+      assert.equal(meta.overlaps, want[key], key)
+      assert.ok(meta.describe.includes(want[key]), `${key}: describe must name ${want[key]}`)
+      assert.match(meta.describe, /observation date/, `${key}: describe must say the table has no release lag`)
+    }
   }
 })
 
