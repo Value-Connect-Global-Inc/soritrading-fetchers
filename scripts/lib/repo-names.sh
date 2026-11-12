@@ -10,13 +10,17 @@
 
 #  ── 표 시작 (이 아래 SORI_ 줄은 네 리포에서 같아야 한다) ──
 SORI_GH_ORG="Value-Connect-Global-Inc"
-SORI_REPO_ROLES="frontend agent backend fetchers"
+SORI_REPO_ROLES="frontend agent backend relay community fetchers"
 SORI_REPO_frontend="sori-frontend"
 SORI_REPO_OLD_frontend="coinsori-prototype"
 SORI_REPO_agent="soritrading-agent"
 SORI_REPO_OLD_agent="coinsori-trading"
 SORI_REPO_backend="sori-backend"
 SORI_REPO_OLD_backend="coinsori-community"
+SORI_REPO_relay="sori-relay"
+SORI_REPO_OLD_relay=""
+SORI_REPO_community="sori-community"
+SORI_REPO_OLD_community=""
 SORI_REPO_fetchers="soritrading-fetchers"
 SORI_REPO_OLD_fetchers=""
 SORI_SERVER_ROOT="/opt/sori"
